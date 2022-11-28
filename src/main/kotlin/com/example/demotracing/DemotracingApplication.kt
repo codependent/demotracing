@@ -17,7 +17,17 @@ class DemotracingApplication (private val tracer: BraveTracer){
     @GetMapping("/hello")
     fun hello(): String {
         val currentSpan: Span? = tracer.currentSpan()
-        val start: Span = tracer.spanBuilder().name("hey").start()
+        val newSpan: Span = tracer.nextSpan().name("hey").start()
+        try {
+            tracer.withSpan(newSpan.start()).use { ws ->
+                // You can tag a span - put a key value pair on it for better debugging
+                newSpan.tag("taxValue", "hi!")
+                // You can log an event on a span - an event is an annotated timestamp
+                newSpan.event("taxCalculated")
+            }
+        } finally {
+            newSpan.end()
+        }
         logger.info("Hello!")
         return "hello"
     }
