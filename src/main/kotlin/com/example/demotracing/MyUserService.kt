@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service
 import kotlin.random.Random
 
 
-@Service
+//@Service
 internal class MyUserService {
 
     private val log: Logger = LoggerFactory.getLogger(javaClass)

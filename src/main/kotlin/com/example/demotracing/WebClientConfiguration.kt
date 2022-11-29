@@ -4,13 +4,14 @@ import io.micrometer.observation.ObservationRegistry
 import io.micrometer.observation.aop.ObservedAspect
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.web.reactive.function.client.WebClient
 
 
-//@Configuration(proxyBeanMethods = false)
-internal class MyConfiguration {
+@Configuration
+internal class WebClientConfiguration {
 
     @Bean
-    fun observedAspect(observationRegistry: ObservationRegistry): ObservedAspect {
-        return ObservedAspect(observationRegistry)
+    fun webClient (webClientBuilder: WebClient.Builder): WebClient {
+        return webClientBuilder.build()
     }
 }

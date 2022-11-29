@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component
 import java.util.stream.StreamSupport
 
 
-@Component
+//@Component
 internal class MyHandler : ObservationHandler<Observation.Context> {
 
     private val log: Logger = LoggerFactory.getLogger(javaClass)
