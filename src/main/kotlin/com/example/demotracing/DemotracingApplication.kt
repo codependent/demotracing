@@ -1,7 +1,6 @@
 package com.example.demotracing
 
-import io.micrometer.observation.Observation
-import io.micrometer.observation.ObservationRegistry
+import io.micrometer.context.ContextSnapshot
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor
 import io.micrometer.tracing.Tracer
 import org.slf4j.LoggerFactory
@@ -11,12 +10,13 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import reactor.core.publisher.SynchronousSink
+import reactor.util.context.ContextView
 
 @RestController
 @SpringBootApplication
 class DemotracingApplication(
     private val webClient: WebClient,
-    private val observationRegistry: ObservationRegistry,
     private val tracer: Tracer
 ) {
 
@@ -24,37 +24,31 @@ class DemotracingApplication(
 
     @GetMapping("/hello")
     fun hello(): Mono<String> {
-        val observation: Observation = Observation.start("webclient-sample", observationRegistry)
-        return Mono.just(observation).flatMap { span ->
-            observation.scoped {
-                logger.info("Hello!")
-            }
-            webClient.get().uri("http://localhost:7654/helloWc")
-                .retrieve()
-                .bodyToMono(String::class.java)
-                .doOnNext {
-                    observation.scoped {
-                        logger.info("Retrieved hello")
-                    }
+        return Mono.deferContextual { contextView: ContextView ->
+            ContextSnapshot.setThreadLocalsFrom(contextView, ObservationThreadLocalAccessor.KEY)
+                .use { scope: ContextSnapshot.Scope ->
+                    val traceId = tracer.currentSpan()!!.context().traceId()
+                    logger.info("<ACCEPTANCE_TEST> <TRACE:{}> Hello!", traceId)
+                    webClient.get().uri("http://localhost:7654/helloWc")
+                        .retrieve()
+                        .bodyToMono(String::class.java)
+                        .handle { t: String, u: SynchronousSink<String> ->
+                            logger.info("Retrieved helloWc {}", t)
+                        }
                 }
-        }.doFinally { signalType ->
-            observation.stop()
-        }.contextWrite { it.put(ObservationThreadLocalAccessor.KEY, observation) }
+        }
     }
 
     @GetMapping("/helloWc")
     fun helloWc(): Mono<String> {
-        val observation: Observation = Observation.start("webclient-samplewc", observationRegistry)
-        observation.scoped {
-            logger.info("HelloWc!")
-        }
-        return Mono.just("HelloWc")
-            .map {
-                observation.scoped {
-                    logger.info("HelloWc map!")
+        return Mono.deferContextual { contextView: ContextView ->
+            ContextSnapshot.setThreadLocalsFrom(contextView, ObservationThreadLocalAccessor.KEY)
+                .use { scope: ContextSnapshot.Scope ->
+                    val traceId = tracer.currentSpan()!!.context().traceId()
+                    logger.info("<ACCEPTANCE_TEST> <TRACE:{}> HelloWc", traceId)
+                    Mono.just(traceId)
                 }
-                it
-            }
+        }
     }
 
 }
