@@ -1,9 +1,7 @@
 package com.example.demotracing
 
-import io.micrometer.context.ContextSnapshot
 import io.micrometer.core.instrument.kotlin.asContextElement
 import io.micrometer.observation.ObservationRegistry
-import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor
 import io.micrometer.tracing.Tracer
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.withContext
@@ -25,21 +23,21 @@ class DemotracingApplication(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @GetMapping("/hello")
-    suspend fun hello(): String {
-        val context = observationRegistry.asContextElement()
-        return withContext(context) {
-            val traceId = tracer.currentSpan()?.context()?.traceId()
-            logger.info("<ACCEPTANCE_TEST> <TRACE:{}> Hello!", traceId)
-            val response: String = webClient.get().uri("http://localhost:7654/helloWc")
-                .retrieve()
-                .bodyToMono(String::class.java)
-                .awaitSingle()
-            response
-        }
+            @GetMapping("/hello")
+            suspend fun hello(): String {
+                val context = observationRegistry.asContextElement()
+                return withContext(context) {
+                    val traceId = tracer.currentSpan()?.context()?.traceId()
+                    logger.info("<ACCEPTANCE_TEST> <TRACE:{}> Hello!", traceId)
+                    val response: String = webClient.get().uri("http://localhost:7654/helloWc")
+                        .retrieve()
+                        .bodyToMono(String::class.java)
+                        .awaitSingle()
+                    response
+                }
 
 
-    }
+            }
 
     @GetMapping("/helloWc")
     suspend fun helloWc(): String {
