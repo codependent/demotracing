@@ -64,7 +64,7 @@ class HelloRestController(
     }
 }
 
-suspend fun <T> withObservationContext(observationRegistry: ObservationRegistry, f: suspend () -> T) : T {
+suspend fun <T> withObservationContext(observationRegistry: ObservationRegistry, f: suspend () -> T): T {
     return withContext(generateObservationContextElement(observationRegistry)) {
         f()
     }
@@ -74,10 +74,9 @@ suspend fun generateObservationContextElement(observationRegistry: ObservationRe
     return ContextSnapshot.setThreadLocalsFrom(
         coroutineContext[ReactorContext]!!.context,
         ObservationThreadLocalAccessor.KEY
-    )
-        .use {
-            observationRegistry.asContextElement()
-        }
+    ).use {
+        observationRegistry.asContextElement()
+    }
 }
 
 suspend fun Logger.observedInfo(message: String) {
@@ -89,7 +88,7 @@ suspend fun Logger.observedInfo(message: String, arg: Any) {
 }
 
 suspend fun Logger.observedInfo(message: String, arg: Any, arg2: Any) {
-    observedInfoGen{ info(message, arg, arg2) }
+    observedInfoGen { info(message, arg, arg2) }
 }
 
 private suspend fun observedInfoGen(f: () -> Any?) {
