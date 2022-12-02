@@ -34,18 +34,20 @@ class DemotracingApplication(
     @GetMapping("/hello")
     suspend fun hello(): String {
 
-        logger.debugAsync("Hey")
+        logger.observedInfo("Hey")
+        logger.observedInfo("My message is {}", "Hey")
         logger.info("Here")
 
         val contextElement = ContextSnapshot.setThreadLocalsFrom(
             coroutineContext[ReactorContext]!!.context,
             ObservationThreadLocalAccessor.KEY
         )
-            .use {
-                observationRegistry.asContextElement()
-            }
+        .use {
+            observationRegistry.asContextElement()
+        }
         return withContext(contextElement) {
             val traceId = tracer.currentSpan()?.context()?.traceId()
+            logger.info("<ACCEPTANCE_TEST> <TRACE:{}> Hello!", traceId)
             logger.info("<ACCEPTANCE_TEST> <TRACE:{}> Hello!", traceId)
             val response: String = webClient.get().uri("http://localhost:7654/helloWc")
                 .retrieve()
@@ -67,9 +69,9 @@ class DemotracingApplication(
             coroutineContext[ReactorContext]!!.context,
             ObservationThreadLocalAccessor.KEY
         )
-            .use {
-                observationRegistry.asContextElement()
-            }
+        .use {
+            observationRegistry.asContextElement()
+        }
         return withContext(contextElement) {
             val traceId = tracer.currentSpan()?.context()?.traceId()
             logger.info("<ACCEPTANCE_TEST> <TRACE:{}> HelloWc", traceId)
@@ -83,10 +85,22 @@ fun main(args: Array<String>) {
     runApplication<DemotracingApplication>(*args)
 }
 
-suspend fun Logger.debugAsync(message: String) {
+suspend fun Logger.observedInfo(message: String) {
+    observedInfoGen { info(message) }
+}
+
+suspend fun Logger.observedInfo(message: String, arg: Any) {
+    observedInfoGen { info(message, arg) }
+}
+
+suspend fun Logger.observedInfo(message: String, arg: Any, arg2: Any) {
+    observedInfoGen{ info(message, arg, arg2) }
+}
+
+private suspend fun observedInfoGen(f: () -> Any?) {
     Mono.just(Unit)
         .handle { t: Unit, u: SynchronousSink<Any> ->
-            info(message)
+            f()
             u.next(t)
-    }.awaitSingleOrNull()
+        }.awaitSingleOrNull()
 }
