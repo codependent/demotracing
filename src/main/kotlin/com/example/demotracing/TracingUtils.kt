@@ -2,7 +2,6 @@ package com.example.demotracing
 
 import io.micrometer.context.ContextSnapshot
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.util.context.ContextView
 
