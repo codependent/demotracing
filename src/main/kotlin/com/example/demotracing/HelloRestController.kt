@@ -39,7 +39,7 @@ class HelloRestController(
         logger.observedInfo("My message is {}", "Hey")
         logger.info("Here")
 
-        return withContext(generateObservationContextElement(observationRegistry)) {
+        return withObservationContext {
             val traceId = tracer.currentSpan()?.context()?.traceId()
             logger.info("<ACCEPTANCE_TEST> <TRACE:{}> Hello!", traceId)
             val response: String = webClient.get().uri("http://localhost:7654/helloWc")
@@ -54,28 +54,30 @@ class HelloRestController(
         }
     }
 
+    private suspend fun <T> withObservationContext(f: suspend () -> T) : T {
+        return withContext(generateObservationContextElement(observationRegistry)) {
+            f()
+        }
+    }
+
+    private suspend fun generateObservationContextElement(observationRegistry: ObservationRegistry): CoroutineContext {
+        return ContextSnapshot.setThreadLocalsFrom(
+            coroutineContext[ReactorContext]!!.context,
+            ObservationThreadLocalAccessor.KEY
+        )
+            .use {
+                observationRegistry.asContextElement()
+            }
+    }
+
     @GetMapping("/helloWc")
     suspend fun helloWc(): String {
-        return withContext(generateObservationContextElement(observationRegistry)) {
+        return withObservationContext {
             val traceId = tracer.currentSpan()?.context()?.traceId()
             logger.info("<ACCEPTANCE_TEST> <TRACE:{}> HelloWc", traceId)
             userService.getName()
         }
     }
-}
-
-suspend fun generateObservationContextElement(observationRegistry: ObservationRegistry): CoroutineContext {
-    return ContextSnapshot.setThreadLocalsFrom(
-        coroutineContext[ReactorContext]!!.context,
-        ObservationThreadLocalAccessor.KEY
-    )
-    .use {
-        observationRegistry.asContextElement()
-    }
-}
-
-fun main(args: Array<String>) {
-    runApplication<DemotracingApplication>(*args)
 }
 
 suspend fun Logger.observedInfo(message: String) {
